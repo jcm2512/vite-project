@@ -1,0 +1,10 @@
+* { box-sizing: Border-box ;
+margin:0;}
+
+html,
+body {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
