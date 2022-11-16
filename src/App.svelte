@@ -10,9 +10,8 @@
 
   let root = document.documentElement;
 
-  let CONTROLLER;
-  let PINCH_CENTER;
-  let DRAG_CENTER;
+  // let CONTROLLER;
+
   // let DRAG_FRAME;
   // let TARGET;
 
@@ -31,24 +30,37 @@
   // const object_scale = 0.2;
   // let scene_scale = 5.0;
 
-  let pinchCenter = { x: 0, y: 0 };
+  let PINCH_CENTER;
+  let DRAG_CENTER;
+
+  let CONTROLLER = {
+    main: element,
+    drag: element,
+    pinch: element,
+    output: { drag: { x: 0, y: 0 }, pinch: { x: 0, y: 0 } },
+  };
 
   onMount(() => {
-    var el = CONTROLLER;
+    var el = CONTROLLER.main;
     var mc = new Hammer(el, { domEvents: true });
     mc.get("pinch").set({ enable: true });
     mc.on("panmove", function (ev) {
+      CONTROLLER.output.drag.x = ev.center.x;
+      CONTROLLER.output.drag.y = ev.center.y;
       root.style.setProperty("--drag-x", `${ev.center.x}px`);
       root.style.setProperty("--drag-y", `${ev.center.y}px`);
+    });
+    mc.on("pinchmove", function (ev) {
+      CONTROLLER.output.pinch.x = ev.center.x;
+      CONTROLLER.output.pinch.y = ev.center.y;
+      root.style.setProperty("--pinch-x", `${ev.center.x}px`);
+      root.style.setProperty("--pinch-y", `${ev.center.y}px`);
     });
     mc.on("pinchstart", function (ev) {
       // disable pan to prevent pointer jump
       mc.get("pan").set({ enable: false });
     });
-    mc.on("pinchmove", function (ev) {
-      root.style.setProperty("--pinch-x", `${ev.center.x}px`);
-      root.style.setProperty("--pinch-y", `${ev.center.y}px`);
-    });
+
     mc.on("pinchend", function (ev) {
       //re-enable pan after short delay
       setTimeout(() => {
@@ -154,9 +166,9 @@
 
 <main id="main">
   <span id="preload-css" class="hit" />
-  <div id="controller" bind:this={CONTROLLER} />
-  <div id="p-center" bind:this={PINCH_CENTER} />
-  <div id="d-center" bind:this={DRAG_CENTER} />
+  <div id="controller" bind:this={CONTROLLER.main} />
+  <div id="p-center" bind:this={CONTROLLER.pinch} />
+  <div id="d-center" bind:this={CONTROLLER.drag} />
 
   <!-- <div class="outer">
     <div
@@ -208,7 +220,7 @@
     z-index: 100000;
     pointer-events: none;
     position: fixed;
-    transform: translate3d(var(--pinch-x), var(--pinch-y), 0);
+    /* transform: translate3d(var(--pinch-x), var(--pinch-y), 0); */
   }
 
   #d-center {
@@ -221,7 +233,7 @@
     z-index: 100000;
     pointer-events: none;
     position: fixed;
-    transform: translate3d(var(--drag-x), var(--drag-y), 0);
+    /* transform: translate3d(var(--drag-x), var(--drag-y), 0); */
     border-radius: 50%;
     opacity: 0.5;
   }
