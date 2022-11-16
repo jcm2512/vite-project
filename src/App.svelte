@@ -69,6 +69,7 @@
     });
     mc.on("panmove", function (ev) {
       hitTest(target);
+      if (ev.target.getBoundingClientRect().x > 0);
     });
     mc.on("pinchend", function (ev) {
       currentScale = limitScale(currentScale * ev.scale);
@@ -86,6 +87,14 @@
       }
       return scale;
     }
+
+    function limitPosX(posx) {
+      if (posx > 0) {
+        return 0;
+      }
+      return posx;
+    }
+
     // panning function
     function hammerPan() {
       mc.on("pan", function (ev) {
@@ -93,7 +102,7 @@
           "scale(" +
           limitScale(currentScale) +
           ") translate(" +
-          (currentLeft + ev.deltaX / limitScale(currentScale)) +
+          (currentLeft + ev.deltaX) / limitScale(currentScale) +
           "px," +
           (currentTop + ev.deltaY / limitScale(currentScale)) +
           "px)";
@@ -141,6 +150,7 @@
 </script>
 
 <main id="main">
+  <div id="controller" />
   <div id="center" bind:this={TARGET} />
   <span id="preload-css" class="hit" />
   <div class="outer">
@@ -170,6 +180,14 @@
   #main {
     display: grid;
   }
+  #controller {
+    height: 100vh;
+    width: 100%;
+    grid-column: 1;
+    grid-row: 1;
+    z-index: 999999;
+  }
+
   #center {
     width: 1vw;
     height: 1vw;
