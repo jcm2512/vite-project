@@ -27,148 +27,73 @@
   //   obj.pos = [`${pos1}px, ${pos2}px, 0px`];
   // });
 
-  // const object_scale = 0.2;
-  // let scene_scale = 5.0;
-
-  let PINCH_CENTER;
-  let DRAG_CENTER;
-
   let CONTROLLER = {
-    main: element,
-    drag: element,
-    pinch: element,
-    output: { drag: { x: 0, y: 0 }, pinch: { x: 0, y: 0 } },
+    MAIN: "",
+    PAN: "",
+    PINCH: "",
   };
 
   onMount(() => {
-    var el = CONTROLLER.main;
-    var mc = new Hammer(el, { domEvents: true });
-    mc.get("pinch").set({ enable: true });
-    mc.on("panmove", function (ev) {
-      CONTROLLER.output.drag.x = ev.center.x;
-      CONTROLLER.output.drag.y = ev.center.y;
-      root.style.setProperty("--drag-x", `${ev.center.x}px`);
-      root.style.setProperty("--drag-y", `${ev.center.y}px`);
-    });
-    mc.on("pinchmove", function (ev) {
-      CONTROLLER.output.pinch.x = ev.center.x;
-      CONTROLLER.output.pinch.y = ev.center.y;
-      root.style.setProperty("--pinch-x", `${ev.center.x}px`);
-      root.style.setProperty("--pinch-y", `${ev.center.y}px`);
-    });
-    mc.on("pinchstart", function (ev) {
-      // disable pan to prevent pointer jump
-      mc.get("pan").set({ enable: false });
+    // --------------------------------------
+    // PINCH ZOOM & PAN WITH HAMMERJS
+    // MODIFIED FROM A CODEPEN by David Linke
+    // NEW ADDITIONS:
+    //    ++ pan while pinching
+    //    ++ keep pinch zoom centered around pointer
+
+    var mc = new Hammer(CONTROLLER.MAIN, {
+      domEvents: true,
     });
 
+    var currentScale = 1;
+    var currentLeft = 0;
+    var currentTop = 0;
+
+    // zoom
+    mc.get("pinch").set({ enable: true });
+    mc.on("pinchstart", function (ev) {
+      // on pinch zoom we eliminate the panning event listener
+      // so that we dont have that weird movement after we end pinching
+      mc.get("pan").set({ enable: false });
+    });
+    mc.on("pinch", function (ev) {
+      let s = currentScale * ev.scale;
+      let x = currentLeft + ev.deltaX / currentScale;
+      let y = currentTop + ev.deltaY / currentScale;
+      CONTROLLER.PAN.style.transform = `scale(${s}) translate(${x}px, ${y}px)`;
+      console.log(s, x, y);
+    });
     mc.on("pinchend", function (ev) {
-      //re-enable pan after short delay
+      currentScale *= ev.scale;
+      currentLeft = currentLeft + ev.deltaX / currentScale;
+      currentTop = currentTop + ev.deltaY / currentScale;
+
+      // once we have ended pinch zooming we fire off the panning event once again
       setTimeout(() => {
         mc.get("pan").set({ enable: true });
       }, 500);
     });
-    // Draggable.create(DRAG_FRAME, {
-    //   onDrag: function () {
-    //     hitTest();
-    //   },
-    // });
-    // const target = TARGET;
-    // var el = DRAG_FRAME;
-    // var mc = new Hammer(el, {
-    //   domEvents: true,
-    // });
-    // const max_scale = 5.0;
-    // const min_scale = 1.0;
-    // var currentScale = 5.0;
-    // var currentLeft = 0;
-    // var currentTop = 0;
-    // // zoom
-    // mc.get("pinch").set({ enable: true });
-    // mc.on("pinchstart", function (ev) {
-    //   // on pinch zoom we eliminate the panning event listener
-    //   //so that we dont have that weird movement after we end pinching
-    //   mc.off("pan");
-    // });
-    // mc.on("pinch", function (ev) {
-    //   el.style.transform =
-    //     "scale(" +
-    //     limitScale(currentScale * ev.scale) +
-    //     ") translate(" +
-    //     currentLeft +
-    //     "px," +
-    //     currentTop +
-    //     "px)";
-    // });
-    // mc.on("pinchmove", function (ev) {
-    //   hitTest(target);
-    // });
-    // mc.on("panmove", function (ev) {
-    //   hitTest(target);
-    //   if (ev.target.getBoundingClientRect().x > 0);
-    // });
-    // mc.on("pinchend", function (ev) {
-    //   currentScale = (currentScale * ev.scale);
-    //   // once we have ended pinch zooming we fire off the panning event once again
-    //   window.setTimeout(hammerPan, 50);
-    // });
-    // // panning function
-    // function hammerPan() {
-    //   mc.on("pan", function (ev) {
-    //     el.style.transform =
-    //       "scale(" +
-    //       (currentScale) +
-    //       ") translate(" +
-    //       (currentLeft + ev.deltaX) / (currentScale) +
-    //       "px," +
-    //       (currentTop + ev.deltaY / (currentScale)) +
-    //       "px)";
-    //   });
-    // }
-    // hammerPan();
-    // mc.on("panend", function (ev) {
-    //   currentLeft = currentLeft + ev.deltaX / limitScale(currentScale);
-    //   currentTop = currentTop + ev.deltaY / (currentScale);
-    // });
+
+    mc.on("pan", function (ev) {
+      let s = currentScale * ev.scale;
+      let x = currentLeft + ev.deltaX / currentScale;
+      let y = currentTop + ev.deltaY / currentScale;
+      CONTROLLER.PAN.style.transform = `scale(${s}) translate(${x}px, ${y}px)`;
+      console.log(x - ev.center.x);
+    });
+
+    mc.on("panend", function (ev) {
+      currentLeft = currentLeft + ev.deltaX / currentScale;
+      currentTop = currentTop + ev.deltaY / currentScale;
+    });
   });
-
-  // let targetSize = 0.2;
-  // let prevHit;
-
-  // function hitTest(target) {
-  //   let targetObj = target.getBoundingClientRect();
-  //   let targetpos = {
-  //     x: targetObj.x + targetObj.width / 2,
-  //     y: targetObj.y + targetObj.height / 2,
-  //   };
-  //   let hit = document.elementFromPoint(targetpos.x, targetpos.y);
-  //   if (prevHit && prevHit.id != hit.id) {
-  //     prevHit.classList.remove("hit");
-  //   }
-  //   if (hit.classList.contains("obj")) {
-  //     prevHit = hit;
-
-  //     //// SIMPLE HIT TEST
-  //     hit.classList.add("hit");
-
-  //     //// VARIABLE SIZE HIT TEST
-  //     // let hitObj = hit.getBoundingClientRect();
-  //     // let dist_to_targetObj_x = targetpos.x - (hitObj.x + hitObj.width / 2);
-  //     // let dist_to_targetObj_y = targetpos.y - (hitObj.y + hitObj.height / 2);
-  //     // if (
-  //     //   Math.abs(dist_to_targetObj_x) < hitObj.width &&
-  //     //   Math.abs(dist_to_targetObj_y) < hitObj.height
-  //     // ) {
-  //     //   hit.classList.add("hit");
-  //     // }
-  //   }
-  // }
 </script>
 
 <main id="main">
   <span id="preload-css" class="hit" />
-  <div id="controller" bind:this={CONTROLLER.main} />
-  <div id="p-center" bind:this={CONTROLLER.pinch} />
-  <div id="d-center" bind:this={CONTROLLER.drag} />
+  <div id="controller" bind:this={CONTROLLER.MAIN} />
+  <div id="p-center" bind:this={CONTROLLER.PINCH} />
+  <div id="d-center" bind:this={CONTROLLER.PAN} />
 
   <!-- <div class="outer">
     <div
@@ -194,12 +119,6 @@
 </main>
 
 <style>
-  :root {
-    --pinch-y: 0px;
-    --pinch-x: 0px;
-    --drag-x: 0px;
-    --drag-y: 0px;
-  }
   #main {
     display: grid;
   }
