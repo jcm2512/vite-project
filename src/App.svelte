@@ -9,6 +9,7 @@
   gsap.registerPlugin(Draggable);
 
   let DRAG_FRAME;
+  let TARGET;
 
   let DOM_OBJECTS = [];
   let OBJECTS = [
@@ -22,96 +23,132 @@
     obj.pos = [`${pos1}px, ${pos2}px, 0px`];
   });
 
+  const object_scale = 0.2;
+  let scene_scale = 5.0;
+
   onMount(() => {
-    Draggable.create(DRAG_FRAME, {
-      onDrag: function () {
-        hitTest();
-      },
-    });
-    let hammer = new Hammer(DRAG_FRAME, { domEvents: true });
-    let el = DRAG_FRAME;
-    let currentScale = 1;
-    let currentLeft = 0;
-    let currentTop = 0;
-    let origin = { x: 0, y: 0 };
-
-    // window.setTimeout(hammerPan, 50);
-
-    // ZOOM
-    hammer.get("pinch").set({ enable: true });
-    hammer.on("pinchstart", function (event) {
-      // disable panning
-      // hammer.off("pan");
-      origin = {
-        x: event.changedPointers[0].clientX,
-        y: event.changedPointers[0].clientY,
-      };
-      el.style.transformOrigin = `${origin.x}px ${origin.y}px`;
-    });
-    hammer.on("pinch", function (event) {
-      el.style.transform = `scale(${
-        currentScale * event.scale
-      }) translate(${currentLeft}px, ${currentTop}px)`;
-    });
-    hammer.on("pinchend", function (event) {
-      currentScale = currentScale * event.scale;
-      currentLeft = currentLeft + event.deltaX / currentScale;
-      currentTop = currentTop + event.deltaY / currentScale;
-      // re-enable panning
-      // window.setTimeout(hammerPan, 50);
-    });
-
-    // PAN
-    // function hammerPan() {
-    //   hammer.on("pan", function (event) {
-    //     el.style.transform = `
-    //     scale(${currentScale})
-    //     translate(${currentLeft + event.deltaX / currentScale}px,
-    //               ${currentTop + event.deltaY / currentScale}px)`;
-    //   });
-    // }
-
-    // hammerPan();
-    // hammer.on("panend", function (event) {
-    //   currentLeft = currentLeft + event.deltaX / currentScale;
-    //   currentTop = currentTop + event.deltaY / currentScale;
+    // Draggable.create(DRAG_FRAME, {
+    //   onDrag: function () {
+    //     hitTest();
+    //   },
     // });
-  });
 
-  let target = {
-    x: document.body.getBoundingClientRect().width / 2,
-    y: document.body.getBoundingClientRect().height / 2,
-  };
+    const target = TARGET;
+
+    var el = DRAG_FRAME;
+    var mc = new Hammer(el, {
+      domEvents: true,
+    });
+
+    const max_scale = 5.0;
+    const min_scale = 1.0;
+
+    var currentScale = 5.0;
+    var currentLeft = 0;
+    var currentTop = 0;
+
+    // zoom
+    mc.get("pinch").set({ enable: true });
+    mc.on("pinchstart", function (ev) {
+      // on pinch zoom we eliminate the panning event listener
+      //so that we dont have that weird movement after we end pinching
+      mc.off("pan");
+    });
+    mc.on("pinch", function (ev) {
+      el.style.transform =
+        "scale(" +
+        limitScale(currentScale * ev.scale) +
+        ") translate(" +
+        currentLeft +
+        "px," +
+        currentTop +
+        "px)";
+    });
+    mc.on("pinchmove", function (ev) {
+      hitTest(target);
+    });
+    mc.on("panmove", function (ev) {
+      hitTest(target);
+    });
+    mc.on("pinchend", function (ev) {
+      currentScale = limitScale(currentScale * ev.scale);
+
+      // once we have ended pinch zooming we fire off the panning event once again
+      window.setTimeout(hammerPan, 50);
+    });
+
+    function limitScale(scale) {
+      if (scale >= max_scale) {
+        return max_scale;
+      }
+      if (scale <= min_scale) {
+        return min_scale;
+      }
+      return scale;
+    }
+    // panning function
+    function hammerPan() {
+      mc.on("pan", function (ev) {
+        el.style.transform =
+          "scale(" +
+          limitScale(currentScale) +
+          ") translate(" +
+          (currentLeft + ev.deltaX / limitScale(currentScale)) +
+          "px," +
+          (currentTop + ev.deltaY / limitScale(currentScale)) +
+          "px)";
+      });
+    }
+
+    hammerPan();
+    mc.on("panend", function (ev) {
+      currentLeft = currentLeft + ev.deltaX / limitScale(currentScale);
+      currentTop = currentTop + ev.deltaY / limitScale(currentScale);
+    });
+  });
 
   let targetSize = 0.2;
   let prevHit;
 
-  function hitTest() {
-    let hit = document.elementFromPoint(target.x, target.y);
+  function hitTest(target) {
+    let targetObj = target.getBoundingClientRect();
+    let targetpos = {
+      x: targetObj.x + targetObj.width / 2,
+      y: targetObj.y + targetObj.height / 2,
+    };
+    let hit = document.elementFromPoint(targetpos.x, targetpos.y);
     if (prevHit && prevHit.id != hit.id) {
       prevHit.classList.remove("hit");
     }
     if (hit.classList.contains("obj")) {
       prevHit = hit;
-      let hitObj = hit.getBoundingClientRect();
-      let x = target.x - (hitObj.x + hitObj.width / 2);
-      let y = target.y - (hitObj.y + hitObj.height / 2);
 
-      if (
-        Math.abs(x) < hitObj.width * targetSize &&
-        Math.abs(y) < hitObj.height * targetSize
-      ) {
-        hit.classList.add("hit");
-      }
+      //// SIMPLE HIT TEST
+      hit.classList.add("hit");
+
+      //// VARIABLE SIZE HIT TEST
+      // let hitObj = hit.getBoundingClientRect();
+      // let dist_to_targetObj_x = targetpos.x - (hitObj.x + hitObj.width / 2);
+      // let dist_to_targetObj_y = targetpos.y - (hitObj.y + hitObj.height / 2);
+      // if (
+      //   Math.abs(dist_to_targetObj_x) < hitObj.width &&
+      //   Math.abs(dist_to_targetObj_y) < hitObj.height
+      // ) {
+      //   hit.classList.add("hit");
+      // }
     }
   }
 </script>
 
 <main id="main">
-  <div id="center" />
+  <div id="center" bind:this={TARGET} />
   <span id="preload-css" class="hit" />
   <div class="outer">
-    <div class="inner drag" bind:this={DRAG_FRAME}>
+    <div
+      class="inner drag"
+      bind:this={DRAG_FRAME}
+      style="transform: scale({scene_scale})"
+    >
       <span class="random_location">
         {#each OBJECTS as obj, index}
           <img
@@ -121,7 +158,7 @@
             bind:this={DOM_OBJECTS[index]}
             src={obj.img}
             alt="dragobject"
-            style="transform: translate3d({obj.pos});"
+            style="transform: translate3d({obj.pos}); scale: {object_scale}"
           />
         {/each}
       </span>
@@ -134,8 +171,8 @@
     display: grid;
   }
   #center {
-    width: 5vw;
-    height: 5vw;
+    width: 1vw;
+    height: 1vw;
     background-color: red;
     grid-column: 1;
     grid-row: 1;
@@ -165,9 +202,10 @@
 
   .drag {
     z-index: 0;
-    width: 400vw;
+    width: 100vw;
     height: 100vh;
     background-color: darkgrey;
+    transition: transform 80ms ease;
   }
 
   .hit {
