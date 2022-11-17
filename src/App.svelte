@@ -33,6 +33,10 @@
     PINCH: "",
   };
 
+  var currentScale = 1;
+  var currentLeft = 0;
+  var currentTop = 0;
+
   onMount(() => {
     // --------------------------------------
     // PINCH ZOOM & PAN WITH HAMMERJS
@@ -45,9 +49,9 @@
       domEvents: true,
     });
 
-    var currentScale = 1;
-    var currentLeft = 0;
-    var currentTop = 0;
+    currentScale = 1;
+    currentLeft = 0;
+    currentTop = 0;
 
     // zoom
     mc.get("pinch").set({ enable: true });
@@ -55,13 +59,17 @@
       // on pinch zoom we eliminate the panning event listener
       // so that we dont have that weird movement after we end pinching
       mc.get("pan").set({ enable: false });
+
+      // CONTROLLER.PAN.style.transform = `scale(${currentScale}) translate(${
+      //   ev.center.x - currentLeft
+      // }px, ${ev.center.y - currentTop}px)`;
     });
     mc.on("pinch", function (ev) {
       let s = currentScale * ev.scale;
       let x = currentLeft + ev.deltaX / currentScale;
       let y = currentTop + ev.deltaY / currentScale;
+      CONTROLLER.PAN.style.transformOrigin = `${ev.center.x}px ${ev.center.y}px`;
       CONTROLLER.PAN.style.transform = `scale(${s}) translate(${x}px, ${y}px)`;
-      console.log(s, x, y);
     });
     mc.on("pinchend", function (ev) {
       currentScale *= ev.scale;
@@ -78,8 +86,9 @@
       let s = currentScale * ev.scale;
       let x = currentLeft + ev.deltaX / currentScale;
       let y = currentTop + ev.deltaY / currentScale;
+      // CONTROLLER.PAN.style.transformOrigin = `${ev.center.x}px ${ev.center.y}px`;
       CONTROLLER.PAN.style.transform = `scale(${s}) translate(${x}px, ${y}px)`;
-      console.log(x - ev.center.x);
+      console.log(ev.deltaX);
     });
 
     mc.on("panend", function (ev) {
@@ -92,7 +101,11 @@
 <main id="main">
   <span id="preload-css" class="hit" />
   <div id="controller" bind:this={CONTROLLER.MAIN} />
-  <div id="p-center" bind:this={CONTROLLER.PINCH} />
+  <div
+    id="p-center"
+    bind:this={CONTROLLER.PINCH}
+    style="transform: scale({currentScale}) translate({currentLeft}px, {currentTop}px)"
+  />
   <div id="d-center" bind:this={CONTROLLER.PAN} />
 
   <!-- <div class="outer">
@@ -139,7 +152,6 @@
     z-index: 100000;
     pointer-events: none;
     position: fixed;
-    /* transform: translate3d(var(--pinch-x), var(--pinch-y), 0); */
   }
 
   #d-center {
@@ -152,9 +164,9 @@
     z-index: 100000;
     pointer-events: none;
     position: fixed;
-    /* transform: translate3d(var(--drag-x), var(--drag-y), 0); */
     border-radius: 50%;
     opacity: 0.5;
+    transition: transform 50ms ease;
   }
 
   .outer {
